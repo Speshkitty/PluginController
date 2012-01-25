@@ -1,0 +1,34 @@
+name: PluginController
+main: uk.co.speshkittyonline.pluginController.PluginController
+version: 1
+author: Sir_Speshkitty
+description: Plugin management plugin.
+commands:
+  plugin:
+    description: All plugin management commands.
+    usage: |
+      /<command> disable [pluginname]
+      /<command> enable [pluginname]
+      /<command> load [pluginname]
+      /<command> reload [pluginname]
+      /<command> list
+      /<command> help
+permissions:
+  plugins.enable:
+    default: op
+    description: Allows you to enable plugins.
+  plugins.disable:
+    default: op
+    description: Allows you to disable plugins.
+  plugins.reload:
+    default: op
+    description: Allows you to reload plugins.
+  plugins.load:
+    default: op
+    description: Allows you to load plugins.
+  plugins.list:
+    default: true
+    description: Allows you to list plugins
+  plugins.help:
+    default: true
+    description: Help information.

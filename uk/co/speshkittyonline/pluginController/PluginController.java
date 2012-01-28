@@ -7,7 +7,9 @@ import java.util.logging.Level;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
-import org.bukkit.event.Event;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.permissions.Permission;
 import org.bukkit.plugin.InvalidDescriptionException;
 import org.bukkit.plugin.InvalidPluginException;
@@ -16,13 +18,12 @@ import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.UnknownDependencyException;
 import org.bukkit.plugin.java.JavaPlugin;
 
-public class PluginController extends JavaPlugin
+public class PluginController extends JavaPlugin implements Listener
 {
 	private Permission permEnable = new Permission("plugins.enable"), permDisable = new Permission("plugins.disable");
 	private Permission permReload = new Permission("plugins.reload"), permLoad = new Permission("plugins.load");
 	private Permission permList = new Permission("plugins.list");
 	private PluginManager pm;
-	private final PluginControllerCommandPreprocessor commandPre = new PluginControllerCommandPreprocessor(this);
 	
 	private String[] help = { //Use £ as separator between  section and help, ie list£Lists all plugins on the server 
 			"help£" + ChatColor.DARK_GREEN + "/plugins help " + ChatColor.WHITE + "-" + ChatColor.GREEN + "Prints all the help.",
@@ -52,7 +53,7 @@ public class PluginController extends JavaPlugin
 		helpValid.add("disable");
 		helpValid.add("reload");
 		pm = getServer().getPluginManager();
-		pm.registerEvent(Event.Type.PLAYER_COMMAND_PREPROCESS, commandPre, Event.Priority.Highest, this);
+		pm.registerEvents(this, this);
 		Log("Plugin controller started.");
 	}
 	
@@ -74,10 +75,7 @@ public class PluginController extends JavaPlugin
 				sender.sendMessage("There is " + ChatColor.GREEN + array.length + ChatColor.WHITE + " plugins on this server (" + ChatColor.RED + countDisabled + " disabled" + ChatColor.WHITE + ").");
 				sender.sendMessage(names.substring(0, names.length()-2));
 			}
-			else
-			{
-				sender.sendMessage(ChatColor.RED + "You don't have permission to use that command.");
-			}
+			else { sender.sendMessage(ChatColor.RED + "You don't have permission to use that command."); }
 		}
 		else if(args.length == 1)
 		{
@@ -96,21 +94,14 @@ public class PluginController extends JavaPlugin
 					sender.sendMessage("There is " + ChatColor.GREEN + array.length + ChatColor.WHITE + " plugins on this server (" + ChatColor.RED + countDisabled + " disabled" + ChatColor.WHITE + ").");
 					sender.sendMessage(names.substring(0, names.length()-2));
 				}
-				else
-				{
-					sender.sendMessage(ChatColor.RED + "You don't have permission to use that command.");
-				}
-
+				else { sender.sendMessage(ChatColor.RED + "You don't have permission to use that command."); }
 			}
 			else if(args[0].equalsIgnoreCase("help"))
 			{
 				for(int i=0;i<help.length;i++)
 				{
 					String[] helpText = help[i].split("£", 2);
-					if(sender.hasPermission("plugins." + helpText[0]) || helpText[0].equalsIgnoreCase("help"))
-					{
-						sender.sendMessage(helpText[1]);
-					}
+					if(sender.hasPermission("plugins." + helpText[0]) || helpText[0].equalsIgnoreCase("help")) { sender.sendMessage(helpText[1]); }
 				}
 			}
 			else
@@ -203,28 +194,19 @@ public class PluginController extends JavaPlugin
 			{
 				if(sender.hasPermission(permLoad))
 				{
-					try
+					if(pm.getPlugin(args[1]) != null) { sender.sendMessage(ChatColor.RED + "That plugin is already loaded."); }
+					else
 					{
-						File newPlugin = new File(getDataFolder().getParent().concat("/" + args[1] + ".jar"));
-						//sender.sendMessage(newPlugin.getPath());
-						pm.loadPlugin(newPlugin);
-						sender.sendMessage(ChatColor.GREEN + "The plugin " + ChatColor.DARK_GREEN + args[1] + ChatColor.GREEN + " was loaded!");
-					}
-					catch (InvalidPluginException e)
-					{
-						sender.sendMessage(ChatColor.RED + "That is not a valid plugin!");
-					}
-					catch (InvalidDescriptionException e)
-					{
-						sender.sendMessage(ChatColor.RED + "That plugin has an invalid description!");
-					}
-					catch (UnknownDependencyException e)
-					{
-						sender.sendMessage(ChatColor.RED + "That plugin is missing a dependancy!");
-					}
-					catch (Exception e)
-					{
-						sender.sendMessage(ChatColor.RED + "An unspecified error was thrown!");
+						try
+						{
+							File newPlugin = new File(getDataFolder().getParent().concat("/" + args[1] + ".jar"));
+							pm.loadPlugin(newPlugin);
+							sender.sendMessage(ChatColor.GREEN + "The plugin " + ChatColor.DARK_GREEN + args[1] + ChatColor.GREEN + " was loaded!");
+						}
+						catch (InvalidPluginException e) { sender.sendMessage(ChatColor.RED + "That is not a valid plugin!"); }
+						catch (InvalidDescriptionException e) { sender.sendMessage(ChatColor.RED + "That plugin has an invalid description!"); }
+						catch (UnknownDependencyException e) { sender.sendMessage(ChatColor.RED + "That plugin is missing a dependancy!"); }
+						catch (Exception e) { sender.sendMessage(ChatColor.RED + "An unspecified error was thrown!"); }
 					}
 				}
 				else { sender.sendMessage(ChatColor.RED + "You don't have permission to load plugins."); } 
@@ -265,15 +247,28 @@ public class PluginController extends JavaPlugin
 			for(int i=0;i<help.length;i++)
 			{
 				String[] helpText = help[i].split("£", 2);
-				if(sender.hasPermission("plugins." + helpText[0]) || helpText[0].equalsIgnoreCase("help"))
-				{
-					sender.sendMessage(helpText[1]);
-				}
+				if(sender.hasPermission("plugins." + helpText[0]) || helpText[0].equalsIgnoreCase("help")) { sender.sendMessage(helpText[1]); }
 			}
 		}
 		return true;
 	}
 		
+	@EventHandler
+	public void onPlayerCommandPreprocess(PlayerCommandPreprocessEvent event)
+	{
+		if(event.isCancelled()) { return; }
+		String[] args = event.getMessage().split(" ");
+
+	    if(args[0].equalsIgnoreCase("/plugins"))
+	    {
+	    	String message = "";
+	    	for(int i=1;i<args.length;i++) { message = message.concat(args[i]).concat(" "); }
+	    	
+	    	event.setCancelled(true);
+	    	event.getPlayer().chat("/plugin " + message.trim());
+	    }
+	}
+	
 	private void Log(Level level, String message) { getServer().getLogger().log(level, "[PluginController] " + message); }
 	private void Log(String message) { Log(Level.INFO, message); }
 }

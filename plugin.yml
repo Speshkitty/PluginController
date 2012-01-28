@@ -32,3 +32,13 @@ permissions:
   plugins.help:
     default: true
     description: Help information.
+  plugins.all: 
+    description: Gives access to all /plugin commands
+    default: op
+    children:
+      plugins.enable: true
+      plugins.disable: true
+      plugins.reload: true
+      plugins.load: true
+      plugins.list: true
+      plugins.help: true
